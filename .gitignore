@@ -3,3 +3,14 @@
 ################################################################################
 
 /.vs/*
+/Src/Backend/CognitivePipeline.API/.vs/CognitivePipeline.API/DesignTimeBuild/.dtbcache
+/Src/Backend/CognitivePipeline.API/CognitivePipeline.API/bin/Debug/netcoreapp2.2
+/Src/Backend/CognitivePipeline.API/.vs/CognitivePipeline.API/v16
+/Src/Backend/CognitivePipeline.API/CognitivePipeline.API/obj
+/Src/Backend/CognitivePipeline.API/CognitivePipeline.API/Properties
+/Src/Backend/CognitivePipeline.API/CognitivePipeline.API/appsettings.Development.json
+/Src/Backend/CognitivePipeline.API/CognitivePipeline.API/CognitivePipeline.API.csproj.user
+/Src/Backend/CognitivePipeline.Functions/.vs/CognitivePipeline.Functions
+/Src/Libs/ObjectDetectionManager/.vs/ObjectDetectionManager
+/Src/Libs/ObjectDetectionManager/ObjectDetectionManager/bin/Debug/netstandard2.0
+/Src/Libs/ObjectDetectionManager/ObjectDetectionManager/obj
