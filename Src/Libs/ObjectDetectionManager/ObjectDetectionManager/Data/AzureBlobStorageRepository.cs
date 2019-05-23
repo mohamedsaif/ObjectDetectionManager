@@ -42,5 +42,18 @@ namespace ObjectDetectionManager.Data
 
             return blockBlob.Uri.AbsoluteUri;
         }
+
+        public async Task<string> CreateFile(string containerName, string fileName, Stream fileData)
+        {
+            var workspaceContainer = cloudBlob.GetContainerReference(containerName);
+            await workspaceContainer.CreateIfNotExistsAsync();
+
+            CloudBlockBlob blockBlob = blobContainer.GetBlockBlobReference(fileName);
+
+            // Create or overwrite the file name blob with the contents of the provided stream
+            await blockBlob.UploadFromStreamAsync(fileData);
+
+            return blockBlob.Uri.AbsoluteUri;
+        }
     }
 }
