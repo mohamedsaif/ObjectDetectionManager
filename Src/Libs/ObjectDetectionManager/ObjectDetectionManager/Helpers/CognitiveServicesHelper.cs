@@ -36,43 +36,52 @@ namespace ObjectDetectionManager.Helpers
             customVisionPredictionEndpoint = cvPredictionEndpoint;
         }
 
-        public ComputerVisionClient GetComputerVisionClient()
+        public ComputerVisionClient ComputerVisionClientInstance
         {
-            if (csClient != null)
+            get
+            {
+                if (csClient != null)
+                    return csClient;
+
+                string subscriptionKey = computerVisionKey;
+                string endpoint = computerVisionEndpoint;
+
+                csClient = new ComputerVisionClient(new ApiKeyServiceClientCredentials(subscriptionKey)) { Endpoint = endpoint };
+
                 return csClient;
-
-            string subscriptionKey = computerVisionKey;
-            string endpoint = computerVisionEndpoint;
-
-            csClient = new ComputerVisionClient(new ApiKeyServiceClientCredentials(subscriptionKey)) { Endpoint = endpoint };
-
-            return csClient;
+            }
         }
 
-        public CustomVisionTrainingClient GetCustomVisionTrainingClient()
+        public CustomVisionTrainingClient CustomVisionTrainingClientInstance
         {
-            if (cvTrainingClient != null)
+            get
+            {
+                if (cvTrainingClient != null)
+                    return cvTrainingClient;
+
+                string subscriptionKey = customVisionTrainingKey;
+                string endpoint = customVisionTrainingEndpoint;
+
+                cvTrainingClient = new CustomVisionTrainingClient() { Endpoint = endpoint, ApiKey = subscriptionKey };
+
                 return cvTrainingClient;
-
-            string subscriptionKey = customVisionTrainingKey;
-            string endpoint = customVisionTrainingEndpoint;
-
-            cvTrainingClient = new CustomVisionTrainingClient() { Endpoint = endpoint, ApiKey = subscriptionKey };
-            
-            return cvTrainingClient;
+            }
         }
 
-        public CustomVisionPredictionClient GetCustomVisionPredictionClient()
+        public CustomVisionPredictionClient CustomVisionPredictionClient
         {
-            if(cvPredictionClient != null)
+            get
+            {
+                if (cvPredictionClient != null)
+                    return cvPredictionClient;
+
+                string subscriptionKey = customVisionPredictionKey;
+                string endpoint = customVisionPredictionEndpoint;
+
+                cvPredictionClient = new CustomVisionPredictionClient() { Endpoint = endpoint, ApiKey = subscriptionKey };
+
                 return cvPredictionClient;
-
-            string subscriptionKey = customVisionPredictionKey;
-            string endpoint = customVisionPredictionEndpoint;
-
-            cvPredictionClient = new CustomVisionPredictionClient() { Endpoint = endpoint, ApiKey = subscriptionKey };
-            
-            return cvPredictionClient;
+            }
         }
 
         public Task<Guid> GetProjectIdForUserAsync(string userId)

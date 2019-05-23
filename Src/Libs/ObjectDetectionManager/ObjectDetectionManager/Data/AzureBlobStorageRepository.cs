@@ -48,12 +48,33 @@ namespace ObjectDetectionManager.Data
             var workspaceContainer = cloudBlob.GetContainerReference(containerName);
             await workspaceContainer.CreateIfNotExistsAsync();
 
-            CloudBlockBlob blockBlob = blobContainer.GetBlockBlobReference(fileName);
+            CloudBlockBlob blockBlob = workspaceContainer.GetBlockBlobReference(fileName);
 
             // Create or overwrite the file name blob with the contents of the provided stream
             await blockBlob.UploadFromStreamAsync(fileData);
 
             return blockBlob.Uri.AbsoluteUri;
+        }
+
+        public async Task<byte[]> GetFile(string fileName)
+        {
+            CloudBlockBlob blockBlob = blobContainer.GetBlockBlobReference(fileName);
+            using (var fileStream = new MemoryStream())
+            {
+                await blockBlob.DownloadToStreamAsync(fileStream);
+                return fileStream.ToArray();
+            }
+        }
+
+        public async Task<byte[]> GetFile(string containerName, string fileName)
+        {
+            var workspaceContainer = cloudBlob.GetContainerReference(containerName);
+            CloudBlockBlob blockBlob = workspaceContainer.GetBlockBlobReference(fileName);
+            using (var fileStream = new MemoryStream())
+            {
+                await blockBlob.DownloadToStreamAsync(fileStream);
+                return fileStream.ToArray();
+            }
         }
     }
 }

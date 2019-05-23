@@ -13,8 +13,8 @@ namespace ObjectDetectionManager.Models
         public bool IsUploaded { get; set; }
 
         [NonSerialized]
-        private Stream fileData;
-        public Stream FileData
+        private byte[] fileData;
+        public byte[] FileData
         {
             get { return fileData; }
             set { fileData = value; }

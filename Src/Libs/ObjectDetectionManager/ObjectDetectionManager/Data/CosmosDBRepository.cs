@@ -25,7 +25,7 @@ namespace ObjectDetectionManager.Data
             Origin = origin;
         }
 
-        private void Initialize(string endpoint, string key, string databaseId)
+        public void Initialize(string endpoint, string key, string databaseId)
         {
             this.databaseId = databaseId;
             client = new DocumentClient(new Uri(endpoint), key, new ConnectionPolicy { EnableEndpointDiscovery = false });
