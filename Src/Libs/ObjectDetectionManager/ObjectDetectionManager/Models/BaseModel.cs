@@ -6,7 +6,7 @@ namespace ObjectDetectionManager.Models
 {
     public class BaseModel
     {
-        public string Id { get; set; }
+        public string id { get; set; }
         public string OwnerId { get; set; }
         public DateTime CreationDate { get; set; }
         public DateTime LastUpdatedDate { get; set; }

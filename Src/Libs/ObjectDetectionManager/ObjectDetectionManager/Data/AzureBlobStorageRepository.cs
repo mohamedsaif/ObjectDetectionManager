@@ -33,12 +33,22 @@ namespace ObjectDetectionManager.Data
             blobContainer.CreateIfNotExistsAsync().Wait();
         }
 
-        public async Task<string> CreateFile(string name, Stream stream)
+        public async Task<string> CreateFile(string name, Stream fileData)
         {
             CloudBlockBlob blockBlob = blobContainer.GetBlockBlobReference(name);
 
             // Create or overwrite the file name blob with the contents of the provided stream
-            await blockBlob.UploadFromStreamAsync(stream);
+            await blockBlob.UploadFromStreamAsync(fileData);
+
+            return blockBlob.Uri.AbsoluteUri;
+        }
+
+        public async Task<string> CreateFile(string name, byte[] fileData)
+        {
+            CloudBlockBlob blockBlob = blobContainer.GetBlockBlobReference(name);
+
+            // Create or overwrite the file name blob with the contents of the provided stream
+            await blockBlob.UploadFromByteArrayAsync(fileData, 0, fileData.Length);
 
             return blockBlob.Uri.AbsoluteUri;
         }
@@ -52,7 +62,6 @@ namespace ObjectDetectionManager.Data
 
             // Create or overwrite the file name blob with the contents of the provided stream
             await blockBlob.UploadFromStreamAsync(fileData);
-
             return blockBlob.Uri.AbsoluteUri;
         }
 

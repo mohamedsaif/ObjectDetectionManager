@@ -7,7 +7,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ObjectDetectionManager.Services
@@ -15,15 +17,19 @@ namespace ObjectDetectionManager.Services
     public class WorkspaceManager
     {
         private CognitiveServicesHelper cognitiveHelper;
-        private AzureBlobStorageRepository blobRepo;
+        private AzureBlobStorageRepository filesBlobContainer;
+        private AzureBlobStorageRepository modelsBlobContainer;
         private CosmosDBRepository<DetectionWorkspace> workspaceRepo;
+        private string blobStorageName;
+        private string blobStorageKey;
         private DetectionWorkspace activeWorkspace;
 
-        public WorkspaceManager(string storageName, string storageKey, string storageContainer, string dbEndpoint, string dbPrimaryKey, string dbName, string sourceSystem, string cvKey, string cvEndpoint, string cvTrainingKey, string cvTrainingEndpoint, string cvPredectionKey, string cvPredectionEndpoint)
+        public WorkspaceManager(string storageName, string storageKey, string dbEndpoint, string dbPrimaryKey, string dbName, string sourceSystem, string cvKey, string cvEndpoint, string cvTrainingKey, string cvTrainingEndpoint, string cvPredectionKey, string cvPredectionEndpoint)
         {
             cognitiveHelper = new CognitiveServicesHelper(cvKey, cvEndpoint, cvTrainingKey, cvTrainingEndpoint, cvPredectionKey, cvPredectionEndpoint);
-            blobRepo = new AzureBlobStorageRepository(storageName, storageKey, storageContainer);
             workspaceRepo = new CosmosDBRepository<DetectionWorkspace>(dbEndpoint, dbPrimaryKey, dbName, sourceSystem);
+            blobStorageName = storageName;
+            blobStorageKey = storageKey;
 
         }
 
@@ -42,16 +48,19 @@ namespace ObjectDetectionManager.Services
                 activeWorkspace = workspaceLockup[0];
             }
 
+            filesBlobContainer = new AzureBlobStorageRepository(blobStorageName, blobStorageKey, activeWorkspace.FilesCotainerUri);
+            modelsBlobContainer = new AzureBlobStorageRepository(blobStorageName, blobStorageKey, activeWorkspace.ModelCotainerUri);
+
             return activeWorkspace;
         }
 
-        public async Task<DetectionWorkspace> CreateWorkspaceAsync(string ownerId, ModelPolicy policy)
+        private async Task<DetectionWorkspace> CreateWorkspaceAsync(string ownerId, ModelPolicy policy)
         {
             var newId = Guid.NewGuid().ToString();
 
             var result = new DetectionWorkspace()
             {
-                Id = newId,
+                id = newId,
                 WorkspaceId = newId,
                 OwnerId = ownerId,
                 Policy = new ModelPolicy(),
@@ -80,7 +89,7 @@ namespace ObjectDetectionManager.Services
                 {
                     if (file.FileData != null)
                     {
-                        string fileAbsUri = await blobRepo.CreateFile(activeWorkspace.FilesCotainerUri, file.FileName, file.FileData);
+                        string fileAbsUri = await filesBlobContainer.CreateFile(file.FileName, file.FileData);
                         file.IsUploaded = true;
                     }
                 }
@@ -119,34 +128,37 @@ namespace ObjectDetectionManager.Services
             if (string.IsNullOrEmpty(validationMessage))
             {
                 await UploadTrainingFiles();
-                await workspaceRepo.UpdateItemAsync(activeWorkspace.Id, activeWorkspace);
+                await workspaceRepo.UpdateItemAsync(activeWorkspace.id, activeWorkspace);
             }
             else
                 throw new InvalidOperationException("Workspace is invalid. " + validationMessage);
         }
 
-        public async Task TrainWorkspace(DetectionWorkspace workspace)
+        public async Task PrepareWorkspaceForTraining()
         {
             await ValidateAndSaveWorkspace();
 
             var domains = await cognitiveHelper.CustomVisionTrainingClientInstance.GetDomainsAsync();
-            var objDetectionDomain = domains.FirstOrDefault(d => d.Type == "ObjectDetection");
+            var objDetectionDomain = domains.FirstOrDefault(d => d.Type == "ObjectDetection" && d.Name == "General (compact)");
 
             //TODO: Add project existence validation
             var project = cognitiveHelper.CustomVisionTrainingClientInstance.CreateProject($"SeeingAI-{activeWorkspace.WorkspaceId}", null, objDetectionDomain.Id);
+
+            activeWorkspace.CustomVisionProjectId = project.Id.ToString();
 
             //Tags Creation
             var tags = activeWorkspace.Files.SelectMany(r => r.Regions)
                                             .Select(t => t.TagName)
                                             .Distinct();
             var customVisionTags = new List<Tag>();
-            foreach(var tag in tags)
+            var imageFileEntries = new List<ImageFileCreateEntry>();
+            foreach (var tag in tags)
             {
                 var newTag = await cognitiveHelper.CustomVisionTrainingClientInstance.CreateTagAsync(project.Id, tag);
                 customVisionTags.Add(newTag);
             }
 
-            var imageFileEntries = new List<ImageFileCreateEntry>();
+            
             foreach (var file in activeWorkspace.Files)
             {
                 List<Region> regions = new List<Region>();
@@ -158,8 +170,70 @@ namespace ObjectDetectionManager.Services
                     regions.Add(new Region(customVisionTag.Id, region.Bounds[0], region.Bounds[1], region.Bounds[2], region.Bounds[3]));
                 }
 
-                imageFileEntries.Add(new ImageFileCreateEntry(file.FileName, file.FileData, null, regions);
+                imageFileEntries.Add(new ImageFileCreateEntry(file.FileName, file.FileData, null, regions));
             }
+
+            //Finalize data upload with regions to customer vision project
+            await cognitiveHelper.CustomVisionTrainingClientInstance.CreateImagesFromFilesAsync(project.Id, new ImageFileCreateBatch(imageFileEntries));
+
+            activeWorkspace.LastUpdatedDate = DateTime.UtcNow;
+
+            await ValidateAndSaveWorkspace();
+        }
+
+        public async Task<bool> TrainPreparedWorkspace()
+        {
+            if (string.IsNullOrEmpty(activeWorkspace.CustomVisionProjectId))
+                throw new InvalidOperationException("You need to execute PrepareWorkspaceForTraining first");
+            Guid projectId = Guid.Parse(activeWorkspace.CustomVisionProjectId);
+            var iteration = cognitiveHelper.CustomVisionTrainingClientInstance.TrainProject(projectId);
+            int totalWaitingInSeconds = 0;
+            while (iteration.Status == "Training")
+            {
+                if (totalWaitingInSeconds > GlobalSettings.MaxTrainingWaitingTimeInSeconds)
+                    throw new TimeoutException($"Training timeout as it took more than ({GlobalSettings.MaxTrainingWaitingTimeInSeconds}) seconds.");
+
+                Thread.Sleep(1000);
+                totalWaitingInSeconds++;
+                // Re-query the iteration to get its updated status
+                iteration = cognitiveHelper.CustomVisionTrainingClientInstance.GetIteration(projectId, iteration.Id);
+            }
+
+            var changeDate = DateTime.UtcNow;
+            activeWorkspace.LastTrainingDate = changeDate;
+            activeWorkspace.LastUpdatedDate = changeDate;
+
+            totalWaitingInSeconds = 0;
+            foreach (var platform in iteration.ExportableTo)
+            {
+                if(platform == ExportPlatform.CoreML.ToString() || platform == ExportPlatform.TensorFlow.ToString() || platform == ExportPlatform.ONNX.ToString())
+                {
+                    var currentExport = await cognitiveHelper.CustomVisionTrainingClientInstance.ExportIterationAsync(projectId, iteration.Id, platform);
+                    bool waitForExport = true;
+                    while (waitForExport)
+                    {
+                        if (totalWaitingInSeconds > GlobalSettings.MaxTrainingWaitingTimeInSeconds)
+                            throw new TimeoutException($"Exporting timeout as it took more than ({GlobalSettings.MaxTrainingWaitingTimeInSeconds}) seconds.");
+
+                        Thread.Sleep(1000);
+                        totalWaitingInSeconds++;
+                        var updatedExports = await cognitiveHelper.CustomVisionTrainingClientInstance.GetExportsAsync(projectId, iteration.Id);
+                        currentExport = updatedExports.Where(e => e.Platform == platform).FirstOrDefault();
+                        if (currentExport != null)
+                        {
+                            if (currentExport.Status == "Done")
+                                waitForExport = false;
+                        }
+                    }
+
+                    //modelsBlobContainer.CreateFile()
+                    WebClient wc = new WebClient();
+                    var modelData = wc.DownloadData(currentExport.DownloadUri);
+                    await modelsBlobContainer.CreateFile($"{platform}.zip", modelData);
+                }
+            }
+
+            return true;
         }
 
         public async Task DeleteWorkpaceAsync(bool isPhysicalDelete)
