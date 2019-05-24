@@ -1,6 +1,7 @@
 ﻿using Microsoft.Azure.CognitiveServices.Vision.ComputerVision;
 using Microsoft.Azure.CognitiveServices.Vision.CustomVision.Prediction;
 using Microsoft.Azure.CognitiveServices.Vision.CustomVision.Training;
+using ObjectDetectionManager.Models;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -88,6 +89,27 @@ namespace ObjectDetectionManager.Helpers
         {
             ///TODO: Update to retrieve related project id
             return Task.FromResult<Guid>(Guid.Parse("8b3d0235-fc66-4b15-bb77-c4c170deebc0"));
+        }
+
+        public static string GetExtensionForModelType(OfflineModelType modelType)
+        {
+            string extention = null;
+            switch (modelType)
+            {
+                case OfflineModelType.CoreML:
+                    extention = "mlmodel";
+                    break;
+                case OfflineModelType.TensorFlow:
+                    extention = "pb";
+                    break;
+                case OfflineModelType.ONNX:
+                    extention = "onnx";
+                    break;
+                default:
+                    break;
+            }
+
+            return extention;
         }
 
     }

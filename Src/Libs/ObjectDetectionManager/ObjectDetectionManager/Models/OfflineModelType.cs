@@ -6,6 +6,6 @@ namespace ObjectDetectionManager.Models
 {
     public enum OfflineModelType
     {
-        CoreML, TenserFlow, ONNX
+        CoreML, TensorFlow, ONNX
     }
 }

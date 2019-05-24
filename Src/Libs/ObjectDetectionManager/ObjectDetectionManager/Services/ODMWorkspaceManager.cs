@@ -6,6 +6,7 @@ using ObjectDetectionManager.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -121,6 +122,20 @@ namespace ObjectDetectionManager.Services
             });
 
             return newFileName;
+        }
+
+        public void AddTrainingFiles(List<TrainingFile> trainingFiles)
+        {
+            ValidateWorkspaceRereference();
+            //TODO: Add enforcement for the model policy and restrictions
+
+            if (trainingFiles == null)
+                throw new ArgumentNullException("trainingFiles can't be null");
+
+            foreach (var file in trainingFiles)
+            {
+                AddTrainingFile(file.FileName, file.FileData, file.Regions);
+            }
         }
 
         private async Task UploadTrainingFiles()
@@ -272,8 +287,14 @@ namespace ObjectDetectionManager.Services
 
                     //modelsBlobContainer.CreateFile()
                     WebClient wc = new WebClient();
-                    var modelData = wc.DownloadData(currentExport.DownloadUri);
-                    await modelsBlobContainer.CreateFileAsync($"{platform}.zip", modelData);
+                    var modelArchive = wc.DownloadData(currentExport.DownloadUri);
+
+                    ZipArchive zip = new ZipArchive(new MemoryStream(modelArchive));
+                    var modelName = $"model.{CognitiveServicesHelper.GetExtensionForModelType((OfflineModelType)Enum.Parse(typeof(OfflineModelType), platform))}";
+                    var modelFile = zip.GetEntry(modelName).Open();
+
+                    //await modelsBlobContainer.CreateFileAsync($"{platform}.zip", modelArchive);
+                    await modelsBlobContainer.CreateFileAsync(modelName, modelFile);
                 }
             }
 
@@ -286,8 +307,15 @@ namespace ObjectDetectionManager.Services
         public async Task<byte[]> DownloadModelAsync(OfflineModelType modelType)
         {
             ValidateWorkspaceRereference();
-            var modelData = await modelsBlobContainer.GetFileAsync($"{modelType}.zip");
+            var modelName = $"model.{CognitiveServicesHelper.GetExtensionForModelType((OfflineModelType)Enum.Parse(typeof(OfflineModelType), modelType.ToString()))}";
+            var modelData = await modelsBlobContainer.GetFileAsync(modelName);
             return modelData;
+        }
+
+        public string GetModelDownloadUri(OfflineModelType modelType)
+        {
+            var modelName = $"model.{CognitiveServicesHelper.GetExtensionForModelType((OfflineModelType)Enum.Parse(typeof(OfflineModelType), modelType.ToString()))}";
+            return modelsBlobContainer.GetFileDownloadUrl(modelName);
         }
 
         public async Task DeleteCustomVisionProject(Guid projectId)

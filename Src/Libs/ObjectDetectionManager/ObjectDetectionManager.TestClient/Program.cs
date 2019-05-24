@@ -21,7 +21,7 @@ namespace ObjectDetectionManager.TestClient
         private static string storageKey = "9N8EnjH3r36ZyQVRomoWwA1oa9eoRTsFD6+KToV8pX1dCBjTeDdNh2qYLrCaXAuyiEQVFUpbz1r1eGX/iiiXww==";
         private static string storageName = "seeingaihackcustomod";
 
-        private static string ownerId = "11111111-b89b-4bb3-9140-14e3d244e0aa";
+        private static string ownerId = "11111222-b89b-4bb3-9140-14e3d244e0aa";
 
         static void Main(string[] args)
         {
@@ -55,11 +55,11 @@ namespace ObjectDetectionManager.TestClient
 
             var sampleData = GetSampleDate();
 
-            workspace.Files = sampleData;
+            wm.AddTrainingFiles(sampleData);
 
             Console.WriteLine("Preparing the workspace for training by uploading the data to custom vision");
 
-            await wm.PrepareWorkspaceForTraining();
+            //await wm.PrepareWorkspaceForTraining();
 
             Console.WriteLine($"*** Data upload to custom vision finished successfully and project ready for training. New custom vision project id is {workspace.CustomVisionProjectId}");
 
@@ -68,6 +68,18 @@ namespace ObjectDetectionManager.TestClient
             var isTrainingCompleted = await wm.TrainPreparedWorkspace();
 
             Console.WriteLine("*** Training of model completed successfully. Model was also exported and saved to the storage");
+
+            string downloadModelUrl = wm.GetModelDownloadUri(OfflineModelType.CoreML);
+
+            Console.WriteLine($"CoreML Download Link: {downloadModelUrl}");
+
+            downloadModelUrl = wm.GetModelDownloadUri(OfflineModelType.TensorFlow);
+
+            Console.WriteLine($"CoreML Download Link: {downloadModelUrl}");
+
+            downloadModelUrl = wm.GetModelDownloadUri(OfflineModelType.ONNX);
+
+            Console.WriteLine($"CoreML Download Link: {downloadModelUrl}");
 
             Console.WriteLine("****************************************");
 

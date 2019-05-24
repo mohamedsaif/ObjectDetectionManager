@@ -75,6 +75,23 @@ namespace ObjectDetectionManager.Data
             }
         }
 
+        public string GetFileDownloadUrl(string fileName)
+        {
+            CloudBlockBlob blockBlob = blobContainer.GetBlockBlobReference(fileName);
+
+            SharedAccessBlobPolicy adHocReadOnlyPolicy = new SharedAccessBlobPolicy()
+            {
+                // When the start time for the SAS is omitted, the start time is assumed to be the time when the storage service receives the request.
+                // Omitting the start time for a SAS that is effective immediately helps to avoid clock skew.
+                SharedAccessExpiryTime = DateTime.UtcNow.AddHours(1),
+                Permissions = SharedAccessBlobPermissions.Read
+            };
+
+            var sas = blockBlob.GetSharedAccessSignature(adHocReadOnlyPolicy);
+
+            return blockBlob.Uri + sas;
+        }
+
         public async Task<byte[]> GetFileAsync(string containerName, string fileName)
         {
             var workspaceContainer = cloudBlob.GetContainerReference(containerName);

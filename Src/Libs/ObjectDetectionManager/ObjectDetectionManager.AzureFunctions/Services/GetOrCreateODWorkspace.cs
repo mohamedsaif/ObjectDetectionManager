@@ -12,7 +12,7 @@ using ObjectDetectionManager.Services;
 using ObjectDetectionManager.Models;
 using ObjectDetectionManager.AzureFunctions.Helpers;
 
-namespace ObjectDetectionManager.AzureFunctions
+namespace ObjectDetectionManager.AzureFunctions.Services
 {
     public static class GetOrCreateODWorkspace
     {

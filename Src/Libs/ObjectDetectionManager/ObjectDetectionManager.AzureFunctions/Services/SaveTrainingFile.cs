@@ -14,7 +14,7 @@ using System.Net.Http;
 using AutoMapper;
 using System.Collections.Generic;
 
-namespace ObjectDetectionManager.AzureFunctions
+namespace ObjectDetectionManager.AzureFunctions.Services
 {
     public static class SaveTrainingFile
     {
@@ -28,6 +28,7 @@ namespace ObjectDetectionManager.AzureFunctions
             log.LogInformation("HTTP triggered (SaveODWorkspace) function");
             
             var workspaceManager = await ODWorkspaceManagerHelper.SetWorkspaceManager();
+
             try
             {
                 var provider = new MultipartMemoryStreamProvider();
@@ -41,6 +42,8 @@ namespace ObjectDetectionManager.AzureFunctions
                 //Get training file bytes
                 var trainingFileData = provider.Contents[1];
                 var trainingFileBytes = await trainingFileData.ReadAsByteArrayAsync();
+
+                var workspace = await workspaceManager.GetWorkspaceAsync(trainingFileDTO.OwnerId);
 
                 var newFileName = workspaceManager.AddTrainingFile(trainingFileDTO.FileName, trainingFileBytes, Mapper.Map<List<ObjectRegion>>(trainingFileDTO.Regions));
 
