@@ -26,8 +26,19 @@ namespace ObjectDetectionManager.TestClient
         static void Main(string[] args)
         {
             Console.WriteLine("Welcome to Object Detection Manager Test");
+            Console.WriteLine("This demo test include images for detection forks and scissors.");
+            Console.WriteLine("The following steps will be performed to generate offline model to be used in mobile devices:");
+            Console.WriteLine("1. Create or Update a new workspace for object detection");
+            Console.WriteLine("2. Upload images along with their objects regions to Azure Storage");
+            Console.WriteLine("3. Provision new custom vision project for object detection");
+            Console.WriteLine("4. Upload the images to custom vision project along with tags");
+            Console.WriteLine("5. Kick off project training in a new iteration");
+            Console.WriteLine("6. Export the generated model into CoreML, TensorFlow and ONNX and upload them to storage");
+            Console.WriteLine("7. Delete the custom vision project");
 
             ExecuteDemo();
+
+            Console.WriteLine("*** Test simulation completed successfully! ***");
 
             Console.ReadLine();
         }
@@ -36,22 +47,17 @@ namespace ObjectDetectionManager.TestClient
         {
             WorkspaceManager wm = new WorkspaceManager(storageName, storageKey, dbEndpoint, dbPrimaryKey, dbName, sourceSystem, cvKey, cvEndpoint, cvTrainingKey, cvTrainingEndpoint, cvPredectionKey, cvPredectionEndpoint);
 
-            Console.WriteLine("Creating new workspace for user: " + ownerId);
+            Console.WriteLine("Creating or getting existent workspace for user: " + ownerId);
 
             var workspace = await wm.GetOrCreateWorkspaceAsync(ownerId);
 
-            Console.WriteLine($"*** Workspace created ({workspace.id}");
+            Console.WriteLine($"*** Workspace created successfully with id: ({workspace.id})");
 
-
-
-
-            Console.WriteLine("Staring to generate workspace files and regions and add them to the workspace");
+            Console.WriteLine("Staring to generate workspace files and regions and save them to the workspace");
 
             var sampleData = GetSampleDate();
 
             workspace.Files = sampleData;
-
-
 
             Console.WriteLine("Preparing the workspace for training by uploading the data to custom vision");
 
@@ -59,33 +65,11 @@ namespace ObjectDetectionManager.TestClient
 
             Console.WriteLine($"*** Data upload to custom vision finished successfully and project ready for training. New custom vision project id is {workspace.CustomVisionProjectId}");
 
-
-
-
-            Console.WriteLine("Starting the training process. Once finished you will be notified");
+            Console.WriteLine("Starting the training process. This will end with a generated models uploaded to storage");
 
             var isTrainingCompleted = await wm.TrainPreparedWorkspace();
 
-            Console.WriteLine("*** Training of model completed. Model was also exported and saved to the storage");
-
-
-            Console.WriteLine("");
-
-
-            Console.WriteLine("");
-
-
-
-            Console.WriteLine("");
-
-
-
-
-            Console.WriteLine("");
-
-
-
-            Console.WriteLine("");
+            Console.WriteLine("*** Training of model completed successfully. Model was also exported and saved to the storage");
         }
 
         public static List<TrainingFile> GetSampleDate()

@@ -233,12 +233,19 @@ namespace ObjectDetectionManager.Services
                 }
             }
 
+            //Delete the Custom Vision project
+            await DeleteCustomVisionProject(projectId);
+
             return true;
         }
 
+        public async Task DeleteCustomVisionProject(Guid projectId)
+        {
+            await cognitiveHelper.CustomVisionTrainingClientInstance.DeleteProjectAsync(projectId);
+            return;
+        }
         public async Task DeleteWorkpaceAsync(bool isPhysicalDelete)
         {
-            throw new NotImplementedException("Pending Implementation");
         }
 
         public async Task DeleteTrainingFile(DetectionWorkspace workspace, TrainingFile file)
