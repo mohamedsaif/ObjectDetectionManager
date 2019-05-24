@@ -38,8 +38,6 @@ namespace ObjectDetectionManager.TestClient
 
             ExecuteDemo();
 
-            Console.WriteLine("*** Test simulation completed successfully! ***");
-
             Console.ReadLine();
         }
 
@@ -70,6 +68,10 @@ namespace ObjectDetectionManager.TestClient
             var isTrainingCompleted = await wm.TrainPreparedWorkspace();
 
             Console.WriteLine("*** Training of model completed successfully. Model was also exported and saved to the storage");
+
+            Console.WriteLine("****************************************");
+
+            Console.WriteLine("*** Test simulation completed successfully! ***");
         }
 
         public static List<TrainingFile> GetSampleDate()

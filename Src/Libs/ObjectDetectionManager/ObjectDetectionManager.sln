@@ -5,7 +5,9 @@ VisualStudioVersion = 16.0.28803.202
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ObjectDetectionManager", "ObjectDetectionManager\ObjectDetectionManager.csproj", "{771502F1-372D-4BF5-9ACE-7491D9BE3599}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ObjectDetectionManager.TestClient", "ObjectDetectionManager.TestClient\ObjectDetectionManager.TestClient.csproj", "{0E94432A-765F-4B09-B133-6AB1BD7942BE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ObjectDetectionManager.TestClient", "ObjectDetectionManager.TestClient\ObjectDetectionManager.TestClient.csproj", "{0E94432A-765F-4B09-B133-6AB1BD7942BE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ObjectDetectionManager.AzureFunctions", "ObjectDetectionManager.AzureFunctions\ObjectDetectionManager.AzureFunctions.csproj", "{27020ABD-2B5A-4199-B33A-4B9AA832ABF8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{0E94432A-765F-4B09-B133-6AB1BD7942BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0E94432A-765F-4B09-B133-6AB1BD7942BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0E94432A-765F-4B09-B133-6AB1BD7942BE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27020ABD-2B5A-4199-B33A-4B9AA832ABF8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27020ABD-2B5A-4199-B33A-4B9AA832ABF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27020ABD-2B5A-4199-B33A-4B9AA832ABF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27020ABD-2B5A-4199-B33A-4B9AA832ABF8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

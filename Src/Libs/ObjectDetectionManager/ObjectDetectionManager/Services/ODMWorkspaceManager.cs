@@ -54,6 +54,27 @@ namespace ObjectDetectionManager.Services
             return activeWorkspace;
         }
 
+        public async Task<ODWorkspace> GetWorkspaceAsync(string ownerId)
+        {
+            List<ODWorkspace> workspaceLockup = await workspaceRepo.GetItemsAsync(x => x.OwnerId == ownerId) as List<ODWorkspace>;
+
+            //No workspace found for OwnerId
+            if (workspaceLockup.Count == 0)
+            {
+                throw new InvalidOperationException("Owner workspace do not exist");
+            }
+            else
+            {
+                //TODO: Add logic to handle multiple workspaces for same owner. for now only a single workspace for owner is supported.
+                activeWorkspace = workspaceLockup[0];
+            }
+
+            filesBlobContainer = new AzureBlobStorageRepository(blobStorageName, blobStorageKey, activeWorkspace.FilesCotainerUri);
+            modelsBlobContainer = new AzureBlobStorageRepository(blobStorageName, blobStorageKey, activeWorkspace.ModelCotainerUri);
+
+            return activeWorkspace;
+        }
+
         private async Task<ODWorkspace> CreateWorkspaceAsync(string ownerId, ModelPolicy policy)
         {
             var newId = Guid.NewGuid().ToString();
@@ -77,6 +98,29 @@ namespace ObjectDetectionManager.Services
             await workspaceRepo.CreateItemAsync(result);
 
             return result;
+        }
+
+        public string AddTrainingFile(string fileName, byte[] fileData, List<ObjectRegion> regions)
+        {
+            ValidateWorkspaceRereference();
+            if (regions == null)
+                throw new ArgumentNullException("regions can't be null");
+
+            if(fileData == null)
+                throw new ArgumentNullException("fileData can't be null");
+
+            string newFileName = Guid.NewGuid().ToString() + Path.GetExtension(fileName);
+
+            activeWorkspace.Files.Add(new TrainingFile
+            {
+                FileName = newFileName,
+                FileData = fileData,
+                Regions = regions,
+                IsUploaded = false,
+                MediaType = "Image"
+            });
+
+            return newFileName;
         }
 
         private async Task UploadTrainingFiles()
