@@ -33,7 +33,7 @@ namespace ObjectDetectionManager.Data
             blobContainer.CreateIfNotExistsAsync().Wait();
         }
 
-        public async Task<string> CreateFile(string name, Stream fileData)
+        public async Task<string> CreateFileAsync(string name, Stream fileData)
         {
             CloudBlockBlob blockBlob = blobContainer.GetBlockBlobReference(name);
 
@@ -43,7 +43,7 @@ namespace ObjectDetectionManager.Data
             return blockBlob.Uri.AbsoluteUri;
         }
 
-        public async Task<string> CreateFile(string name, byte[] fileData)
+        public async Task<string> CreateFileAsync(string name, byte[] fileData)
         {
             CloudBlockBlob blockBlob = blobContainer.GetBlockBlobReference(name);
 
@@ -53,7 +53,7 @@ namespace ObjectDetectionManager.Data
             return blockBlob.Uri.AbsoluteUri;
         }
 
-        public async Task<string> CreateFile(string containerName, string fileName, Stream fileData)
+        public async Task<string> CreateFileAsync(string containerName, string fileName, Stream fileData)
         {
             var workspaceContainer = cloudBlob.GetContainerReference(containerName);
             await workspaceContainer.CreateIfNotExistsAsync();
@@ -65,7 +65,7 @@ namespace ObjectDetectionManager.Data
             return blockBlob.Uri.AbsoluteUri;
         }
 
-        public async Task<byte[]> GetFile(string fileName)
+        public async Task<byte[]> GetFileAsync(string fileName)
         {
             CloudBlockBlob blockBlob = blobContainer.GetBlockBlobReference(fileName);
             using (var fileStream = new MemoryStream())
@@ -75,7 +75,7 @@ namespace ObjectDetectionManager.Data
             }
         }
 
-        public async Task<byte[]> GetFile(string containerName, string fileName)
+        public async Task<byte[]> GetFileAsync(string containerName, string fileName)
         {
             var workspaceContainer = cloudBlob.GetContainerReference(containerName);
             CloudBlockBlob blockBlob = workspaceContainer.GetBlockBlobReference(fileName);

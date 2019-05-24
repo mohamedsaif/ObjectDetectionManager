@@ -5,6 +5,6 @@ namespace ObjectDetectionManager.Abstractions
 {
     public interface IStorageRepository
     {
-        Task<string> CreateFile(string name, Stream stream);
+        Task<string> CreateFileAsync(string name, Stream stream);
     }
 }

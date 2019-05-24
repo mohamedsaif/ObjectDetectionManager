@@ -4,7 +4,7 @@ using System.Text;
 
 namespace ObjectDetectionManager.Models
 {
-    public enum ModelType
+    public enum OfflineModelType
     {
         CoreML, TenserFlow, ONNX
     }

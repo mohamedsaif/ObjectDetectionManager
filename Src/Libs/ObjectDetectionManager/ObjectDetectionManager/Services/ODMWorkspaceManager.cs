@@ -14,28 +14,28 @@ using System.Threading.Tasks;
 
 namespace ObjectDetectionManager.Services
 {
-    public class WorkspaceManager
+    public class ODMWorkspaceManager
     {
         private CognitiveServicesHelper cognitiveHelper;
         private AzureBlobStorageRepository filesBlobContainer;
         private AzureBlobStorageRepository modelsBlobContainer;
-        private CosmosDBRepository<DetectionWorkspace> workspaceRepo;
+        private CosmosDBRepository<ODWorkspace> workspaceRepo;
         private string blobStorageName;
         private string blobStorageKey;
-        private DetectionWorkspace activeWorkspace;
+        private ODWorkspace activeWorkspace;
 
-        public WorkspaceManager(string storageName, string storageKey, string dbEndpoint, string dbPrimaryKey, string dbName, string sourceSystem, string cvKey, string cvEndpoint, string cvTrainingKey, string cvTrainingEndpoint, string cvPredectionKey, string cvPredectionEndpoint)
+        public ODMWorkspaceManager(string storageName, string storageKey, string dbEndpoint, string dbPrimaryKey, string dbName, string sourceSystem, string cvKey, string cvEndpoint, string cvTrainingKey, string cvTrainingEndpoint, string cvPredectionKey, string cvPredectionEndpoint)
         {
             cognitiveHelper = new CognitiveServicesHelper(cvKey, cvEndpoint, cvTrainingKey, cvTrainingEndpoint, cvPredectionKey, cvPredectionEndpoint);
-            workspaceRepo = new CosmosDBRepository<DetectionWorkspace>(dbEndpoint, dbPrimaryKey, dbName, sourceSystem);
+            workspaceRepo = new CosmosDBRepository<ODWorkspace>(dbEndpoint, dbPrimaryKey, dbName, sourceSystem);
             blobStorageName = storageName;
             blobStorageKey = storageKey;
 
         }
 
-        public async Task<DetectionWorkspace> GetOrCreateWorkspaceAsync(string ownerId)
+        public async Task<ODWorkspace> GetOrCreateWorkspaceAsync(string ownerId)
         {
-            List<DetectionWorkspace> workspaceLockup = await workspaceRepo.GetItemsAsync(x => x.OwnerId == ownerId) as List<DetectionWorkspace>;
+            List<ODWorkspace> workspaceLockup = await workspaceRepo.GetItemsAsync(x => x.OwnerId == ownerId) as List<ODWorkspace>;
             
             //No workspace found for OwnerId
             if(workspaceLockup.Count == 0)
@@ -54,11 +54,11 @@ namespace ObjectDetectionManager.Services
             return activeWorkspace;
         }
 
-        private async Task<DetectionWorkspace> CreateWorkspaceAsync(string ownerId, ModelPolicy policy)
+        private async Task<ODWorkspace> CreateWorkspaceAsync(string ownerId, ModelPolicy policy)
         {
             var newId = Guid.NewGuid().ToString();
 
-            var result = new DetectionWorkspace()
+            var result = new ODWorkspace()
             {
                 id = newId,
                 WorkspaceId = newId,
@@ -89,7 +89,7 @@ namespace ObjectDetectionManager.Services
                 {
                     if (file.FileData != null)
                     {
-                        string fileAbsUri = await filesBlobContainer.CreateFile(file.FileName, file.FileData);
+                        string fileAbsUri = await filesBlobContainer.CreateFileAsync(file.FileName, file.FileData);
                         file.IsUploaded = true;
                     }
                 }
@@ -229,7 +229,7 @@ namespace ObjectDetectionManager.Services
                     //modelsBlobContainer.CreateFile()
                     WebClient wc = new WebClient();
                     var modelData = wc.DownloadData(currentExport.DownloadUri);
-                    await modelsBlobContainer.CreateFile($"{platform}.zip", modelData);
+                    await modelsBlobContainer.CreateFileAsync($"{platform}.zip", modelData);
                 }
             }
 
@@ -239,24 +239,29 @@ namespace ObjectDetectionManager.Services
             return true;
         }
 
+        public async Task<byte[]> DownloadModelAsync(OfflineModelType modelType)
+        {
+            ValidateWorkspaceRereference();
+            var modelData = await modelsBlobContainer.GetFileAsync($"{modelType}.zip");
+            return modelData;
+        }
+
         public async Task DeleteCustomVisionProject(Guid projectId)
         {
             await cognitiveHelper.CustomVisionTrainingClientInstance.DeleteProjectAsync(projectId);
             return;
         }
+
         public async Task DeleteWorkpaceAsync(bool isPhysicalDelete)
         {
         }
 
-        public async Task DeleteTrainingFile(DetectionWorkspace workspace, TrainingFile file)
+        public async Task DeleteTrainingFile(ODWorkspace workspace, TrainingFile file)
         {
             throw new NotImplementedException("Pending Implementation");
         }
 
-        public async Task<Stream> DownloadModelAsync(DetectionWorkspace workspace, ModelType modelType)
-        {
-            throw new NotImplementedException("Pending Implementation");
-        }
+        
 
     }
 }

@@ -45,7 +45,7 @@ namespace ObjectDetectionManager.TestClient
 
         static async void ExecuteDemo()
         {
-            WorkspaceManager wm = new WorkspaceManager(storageName, storageKey, dbEndpoint, dbPrimaryKey, dbName, sourceSystem, cvKey, cvEndpoint, cvTrainingKey, cvTrainingEndpoint, cvPredectionKey, cvPredectionEndpoint);
+            ODMWorkspaceManager wm = new ODMWorkspaceManager(storageName, storageKey, dbEndpoint, dbPrimaryKey, dbName, sourceSystem, cvKey, cvEndpoint, cvTrainingKey, cvTrainingEndpoint, cvPredectionKey, cvPredectionEndpoint);
 
             Console.WriteLine("Creating or getting existent workspace for user: " + ownerId);
 
