@@ -4,7 +4,7 @@ I worked in a project where we needed to create personal object detection platfo
 
 ## Implementation
 
-![Architecture](Res/Architecture.png)
+![Architecture](Res/architecture.png)
 
 This project objective is to create a platform that will allow developers to offer personalized offline object detection models to be as part of a mobile app.
 
