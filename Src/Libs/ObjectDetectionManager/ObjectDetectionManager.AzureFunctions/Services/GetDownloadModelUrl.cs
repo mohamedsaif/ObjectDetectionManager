@@ -26,8 +26,8 @@ namespace ObjectDetectionManager.AzureFunctions.Services
             }
             try
             {
-                var workspaceManager = await ODWorkspaceManagerHelper.SetWorkspaceManager();
-                var workspace = await workspaceManager.GetOrCreateWorkspaceAsync(modelReq.OwnerId);
+                var workspaceManager = await ODWorkspaceManagerHelper.SetWorkspaceManager(modelReq.OwnerId, true);
+                var workspace = await workspaceManager.GetWorkspaceAsync(modelReq.OwnerId, true);
 
                 if (workspace.LastTrainingDate != null)
                     return new OkObjectResult(workspaceManager.GetModelDownloadUri(Enum.Parse<OfflineModelType>(modelReq.Platform)));

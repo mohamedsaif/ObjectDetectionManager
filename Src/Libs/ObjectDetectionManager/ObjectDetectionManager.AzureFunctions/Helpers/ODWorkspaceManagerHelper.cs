@@ -8,7 +8,7 @@ namespace ObjectDetectionManager.AzureFunctions.Helpers
 {
     public static class ODWorkspaceManagerHelper
     {
-        public static async Task<ODMWorkspaceManager> SetWorkspaceManager()
+        public static async Task<ODMWorkspaceManager> SetWorkspaceManager(string ownerId, bool createIfNotFound)
         {
             var storageName = await GlobalSettings.GetKeyValue("storageName", false);
             var storageKey = await GlobalSettings.GetKeyValue("storageKey", false);
@@ -23,7 +23,7 @@ namespace ObjectDetectionManager.AzureFunctions.Helpers
             var cvPredectionKey = await GlobalSettings.GetKeyValue("cvPredectionKey", false);
             var cvPredectionEndpoint = await GlobalSettings.GetKeyValue("cvPredectionEndpoint", false);
 
-            return new ODMWorkspaceManager(storageName, storageKey, dbEndpoint, dbPrimaryKey, dbName, sourceSystem, cvKey, cvEndpoint, cvTrainingKey, cvTrainingEndpoint, cvPredectionKey, cvPredectionEndpoint);
+            return ODMWorkspaceManager.Initialize(createIfNotFound, ownerId, storageName, storageKey, dbEndpoint, dbPrimaryKey, dbName, sourceSystem, cvKey, cvEndpoint, cvTrainingKey, cvTrainingEndpoint, cvPredectionKey, cvPredectionEndpoint);
         }
     }
 }

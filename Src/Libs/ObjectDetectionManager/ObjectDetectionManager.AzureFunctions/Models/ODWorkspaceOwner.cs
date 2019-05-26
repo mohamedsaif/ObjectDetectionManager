@@ -7,5 +7,6 @@ namespace ObjectDetectionManager.AzureFunctions.Models
     public class ODWorkspaceOwner
     {
         public string OwnerId { get; set; }
+        public bool CreateIfNotExists { get; set; }
     }
 }

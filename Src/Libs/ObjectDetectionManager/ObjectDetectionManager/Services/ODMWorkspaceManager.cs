@@ -25,7 +25,30 @@ namespace ObjectDetectionManager.Services
         private string blobStorageKey;
         private ODWorkspace activeWorkspace;
 
-        public ODMWorkspaceManager(string storageName, string storageKey, string dbEndpoint, string dbPrimaryKey, string dbName, string sourceSystem, string cvKey, string cvEndpoint, string cvTrainingKey, string cvTrainingEndpoint, string cvPredectionKey, string cvPredectionEndpoint)
+        public static ODMWorkspaceManager Initialize(bool createIfNotFound, string ownerId, string storageName, string storageKey, string dbEndpoint, string dbPrimaryKey, string dbName, string sourceSystem, string cvKey, string cvEndpoint, string cvTrainingKey, string cvTrainingEndpoint, string cvPredectionKey, string cvPredectionEndpoint)
+        {
+            ODMWorkspaceManager odmWM = null;
+            try
+            {
+                odmWM = new ODMWorkspaceManager(storageName, storageKey, dbEndpoint, dbPrimaryKey, dbName, sourceSystem, cvKey, cvEndpoint, cvTrainingKey, cvTrainingEndpoint, cvPredectionKey, cvPredectionEndpoint);
+                if (createIfNotFound)
+                {
+                    odmWM.GetOrCreateWorkspaceAsync(ownerId).Wait();
+                }
+                else
+                {
+                    odmWM.GetWorkspaceAsync(ownerId, false).Wait();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Failed to initialize ODMWorkspaceManager");
+            }
+
+            return odmWM;
+        }
+
+        private ODMWorkspaceManager(string storageName, string storageKey, string dbEndpoint, string dbPrimaryKey, string dbName, string sourceSystem, string cvKey, string cvEndpoint, string cvTrainingKey, string cvTrainingEndpoint, string cvPredectionKey, string cvPredectionEndpoint)
         {
             cognitiveHelper = new CognitiveServicesHelper(cvKey, cvEndpoint, cvTrainingKey, cvTrainingEndpoint, cvPredectionKey, cvPredectionEndpoint);
             workspaceRepo = new CosmosDBRepository<ODWorkspace>(dbEndpoint, dbPrimaryKey, dbName, sourceSystem);
@@ -34,7 +57,7 @@ namespace ObjectDetectionManager.Services
 
         }
 
-        public async Task<ODWorkspace> GetOrCreateWorkspaceAsync(string ownerId)
+        private async Task<ODWorkspace> GetOrCreateWorkspaceAsync(string ownerId)
         {
             List<ODWorkspace> workspaceLockup = await workspaceRepo.GetItemsAsync(x => x.OwnerId == ownerId) as List<ODWorkspace>;
             
@@ -55,25 +78,30 @@ namespace ObjectDetectionManager.Services
             return activeWorkspace;
         }
 
-        public async Task<ODWorkspace> GetWorkspaceAsync(string ownerId)
+        public async Task<ODWorkspace> GetWorkspaceAsync(string ownerId, bool retrieveCached)
         {
-            List<ODWorkspace> workspaceLockup = await workspaceRepo.GetItemsAsync(x => x.OwnerId == ownerId) as List<ODWorkspace>;
-
-            //No workspace found for OwnerId
-            if (workspaceLockup.Count == 0)
-            {
-                throw new InvalidOperationException("Owner workspace do not exist");
-            }
+            if (retrieveCached)
+                return activeWorkspace;
             else
             {
-                //TODO: Add logic to handle multiple workspaces for same owner. for now only a single workspace for owner is supported.
-                activeWorkspace = workspaceLockup[0];
+                List<ODWorkspace> workspaceLockup = await workspaceRepo.GetItemsAsync(x => x.OwnerId == ownerId) as List<ODWorkspace>;
+
+                //No workspace found for OwnerId
+                if (workspaceLockup.Count == 0)
+                {
+                    throw new InvalidOperationException("Owner workspace do not exist");
+                }
+                else
+                {
+                    //TODO: Add logic to handle multiple workspaces for same owner. for now only a single workspace for owner is supported.
+                    activeWorkspace = workspaceLockup[0];
+                }
+
+                filesBlobContainer = new AzureBlobStorageRepository(blobStorageName, blobStorageKey, activeWorkspace.FilesCotainerUri);
+                modelsBlobContainer = new AzureBlobStorageRepository(blobStorageName, blobStorageKey, activeWorkspace.ModelCotainerUri);
+
+                return activeWorkspace;
             }
-
-            filesBlobContainer = new AzureBlobStorageRepository(blobStorageName, blobStorageKey, activeWorkspace.FilesCotainerUri);
-            modelsBlobContainer = new AzureBlobStorageRepository(blobStorageName, blobStorageKey, activeWorkspace.ModelCotainerUri);
-
-            return activeWorkspace;
         }
 
         private async Task<ODWorkspace> CreateWorkspaceAsync(string ownerId, ModelPolicy policy)
@@ -110,11 +138,20 @@ namespace ObjectDetectionManager.Services
             if(fileData == null)
                 throw new ArgumentNullException("fileData can't be null");
 
+            //If the submitted file already exists, only update the regions
+            if(ValidateIfTrainingFileExists(fileName))
+            {
+                var existingTrainingFile = activeWorkspace.Files.Where(f => f.OriginalFileName == fileName).FirstOrDefault();
+                existingTrainingFile.Regions = regions;
+                return existingTrainingFile.FileName;
+            }
+
             string newFileName = Guid.NewGuid().ToString() + Path.GetExtension(fileName);
 
             activeWorkspace.Files.Add(new TrainingFile
             {
                 FileName = newFileName,
+                OriginalFileName = fileName,
                 FileData = fileData,
                 Regions = regions,
                 IsUploaded = false,
@@ -138,6 +175,11 @@ namespace ObjectDetectionManager.Services
             }
         }
 
+        public bool ValidateIfTrainingFileExists(string newTrainingFileName)
+        {
+            return activeWorkspace.Files.Exists(f => f.OriginalFileName == newTrainingFileName);
+        }
+
         private async Task UploadTrainingFiles()
         {
             ValidateWorkspaceRereference();
@@ -155,13 +197,13 @@ namespace ObjectDetectionManager.Services
             }
         }
 
-        public void ValidateWorkspaceRereference()
+        private void ValidateWorkspaceRereference()
         {
             if (activeWorkspace == null)
                 throw new InvalidOperationException("You must call GetOrCreateWorkspaceAsync(ownerId) first before any operations");
         }
 
-        public string ValidateWorkspacePolicy()
+        private string ValidateWorkspacePolicy()
         {
             ValidateWorkspaceRereference();
 

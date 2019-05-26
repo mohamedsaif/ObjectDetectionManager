@@ -8,6 +8,7 @@ namespace ObjectDetectionManager.Models
     public class TrainingFile
     {
         public string FileName { get; set; }
+        public string OriginalFileName { get; set; }
         public string MediaType { get; set; }
         public List<ObjectRegion> Regions { get; set; }
         public bool IsUploaded { get; set; }

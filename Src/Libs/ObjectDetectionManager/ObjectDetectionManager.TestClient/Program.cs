@@ -43,11 +43,12 @@ namespace ObjectDetectionManager.TestClient
 
         static async void ExecuteDemo()
         {
-            ODMWorkspaceManager wm = new ODMWorkspaceManager(storageName, storageKey, dbEndpoint, dbPrimaryKey, dbName, sourceSystem, cvKey, cvEndpoint, cvTrainingKey, cvTrainingEndpoint, cvPredectionKey, cvPredectionEndpoint);
+            //Create/get an object detection workspace for the provided ownerId
+            ODMWorkspaceManager wm = ODMWorkspaceManager.Initialize(true, ownerId, storageName, storageKey, dbEndpoint, dbPrimaryKey, dbName, sourceSystem, cvKey, cvEndpoint, cvTrainingKey, cvTrainingEndpoint, cvPredectionKey, cvPredectionEndpoint);
 
             Console.WriteLine("Creating or getting existent workspace for user: " + ownerId);
 
-            var workspace = await wm.GetOrCreateWorkspaceAsync(ownerId);
+            var workspace = await wm.GetWorkspaceAsync(ownerId, true);
 
             Console.WriteLine($"*** Workspace created successfully with id: ({workspace.id})");
 
@@ -140,7 +141,7 @@ namespace ObjectDetectionManager.TestClient
 
             foreach(var entry in fileToRegionMapScissors)
             {
-                var newTrainingFile = new TrainingFile { FileName = entry.Key + ".jpg", MediaType = "Image" };
+                var newTrainingFile = new TrainingFile { OriginalFileName = $"{entry.Key}.jpg", MediaType = "Image" };
                 newTrainingFile.Regions = new List<ObjectRegion> {
                     new ObjectRegion {
                         Bounds = entry.Value,
@@ -156,7 +157,7 @@ namespace ObjectDetectionManager.TestClient
 
             foreach (var entry in fileToRegionMapFork)
             {
-                var newTrainingFile = new TrainingFile { FileName = entry.Key + ".jpg", MediaType = "Image" };
+                var newTrainingFile = new TrainingFile { OriginalFileName = $"{entry.Key}.jpg", MediaType = "Image" };
                 newTrainingFile.Regions = new List<ObjectRegion> {
                     new ObjectRegion {
                         Bounds = entry.Value,

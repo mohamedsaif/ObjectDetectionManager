@@ -16,9 +16,6 @@ namespace ObjectDetectionManager.AzureFunctions.Services
 {
     public static class GetOrCreateODWorkspace
     {
-        //Here workspace manager can be shared accross all calls as it does not use user specific workspace
-        private static ODMWorkspaceManager workspaceManager;
-
         [FunctionName("GetOrCreateODWorkspace")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] ODWorkspaceOwner owner,
@@ -26,20 +23,27 @@ namespace ObjectDetectionManager.AzureFunctions.Services
         {
             log.LogInformation("HTTP triggered (GetOrCreateODWorkspace) function");
 
-            if (workspaceManager == null)
-                workspaceManager = await ODWorkspaceManagerHelper.SetWorkspaceManager();
+            try
+            {
+                var workspaceManager = await ODWorkspaceManagerHelper.SetWorkspaceManager(owner.OwnerId, owner.CreateIfNotExists);
 
-            ODWorkspace workspace;
+                ODWorkspace workspace;
 
-            if (owner != null)
-                workspace = await workspaceManager.GetOrCreateWorkspaceAsync(owner.OwnerId);
-            else
-                return new BadRequestObjectResult ("Owner was not found. You should submit owner in the request body");
+                if (owner != null)
+                    workspace = await workspaceManager.GetWorkspaceAsync(owner.OwnerId, true);
+                else
+                    return new BadRequestObjectResult("Owner was not found. You should submit owner in the request body");
 
-            if (workspace != null)
-                return new OkObjectResult(workspace);
-            else
+                if (workspace != null)
+                    return new OkObjectResult(workspace);
+                else
+                    return new BadRequestObjectResult("Workspace could not be found or created");
+            }
+            catch (Exception ex)
+            {
+                log.LogError($"FAILED: {ex.Message}");
                 return new BadRequestObjectResult("Workspace could not be found or created");
+            }
         }
     }
 }

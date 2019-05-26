@@ -21,8 +21,8 @@ namespace ObjectDetectionManager.AzureFunctions.Services
         {
             log.LogInformation("HTTP triggered (SaveODWorkspace) function");
 
-            var workspaceManager = await ODWorkspaceManagerHelper.SetWorkspaceManager();
-            var workspace = await workspaceManager.GetOrCreateWorkspaceAsync(owner.OwnerId);
+            var workspaceManager = await ODWorkspaceManagerHelper.SetWorkspaceManager(owner.OwnerId, owner.CreateIfNotExists);
+            var workspace = await workspaceManager.GetWorkspaceAsync(owner.OwnerId, true);
 
             try
             {
@@ -36,6 +36,7 @@ namespace ObjectDetectionManager.AzureFunctions.Services
             }
             catch (Exception ex)
             {
+                log.LogError($"FAILED: {ex.Message}");
                 return new BadRequestObjectResult($"Addition of the file failed");
             }
         }
