@@ -129,7 +129,7 @@ namespace ObjectDetectionManager.Services
             return result;
         }
 
-        public string AddTrainingFile(string fileName, byte[] fileData, List<ObjectRegion> regions)
+        public string AddTrainingFile(string fileName, byte[] fileData, List<ObjectRegion> regions, bool ignoreDuplicatesUpload = true)
         {
             ValidateWorkspaceRereference();
             if (regions == null)
@@ -141,9 +141,18 @@ namespace ObjectDetectionManager.Services
             //If the submitted file already exists, only update the regions
             if(ValidateIfTrainingFileExists(fileName))
             {
-                var existingTrainingFile = activeWorkspace.Files.Where(f => f.OriginalFileName == fileName).FirstOrDefault();
-                existingTrainingFile.Regions = regions;
-                return existingTrainingFile.FileName;
+                //If ignore flag is set to true, just update the regions of the duplicate file instead of adding it.
+                if (ignoreDuplicatesUpload)
+                {
+                    var existingTrainingFile = activeWorkspace.Files.Where(f => f.OriginalFileName == fileName).FirstOrDefault();
+                    existingTrainingFile.Regions = regions;
+                    return existingTrainingFile.FileName;
+                }
+                else
+                {
+                    //If ignore duplicate is false, this means duplicate files are not allowed and an exception will be thrown
+                    throw new InvalidOperationException("Duplicated file detected when ignoreDuplicate is true");
+                }
             }
 
             string newFileName = Guid.NewGuid().ToString() + Path.GetExtension(fileName);
@@ -312,11 +321,10 @@ namespace ObjectDetectionManager.Services
                 return true;
 
             Guid projectId = Guid.Parse(activeWorkspace.CustomVisionProjectId);
-            Iteration iteration;
 
-            CreateCustomVisionTrainingIteration(projectId, out iteration);
+            Iteration iteration = await CreateCustomVisionTrainingIteration(projectId);
 
-            await ExportTrainedCustomVisionIteration(projectId, iteration);
+            await ExportTrainedCustomVisionIterationToODMWorkspace(projectId, iteration);
 
             //Delete the Custom Vision project if requested (default)
             if (deleteAfterTraining)
@@ -325,7 +333,7 @@ namespace ObjectDetectionManager.Services
             return true;
         }
 
-        private async Task ExportTrainedCustomVisionIteration(Guid projectId, Iteration iteration)
+        private async Task ExportTrainedCustomVisionIterationToODMWorkspace(Guid projectId, Iteration iteration)
         {
             int totalWaitingInSeconds = 0;
             foreach (var platform in iteration.ExportableTo)
@@ -364,10 +372,10 @@ namespace ObjectDetectionManager.Services
             }
         }
 
-        private void CreateCustomVisionTrainingIteration(Guid projectId, out Iteration iteration)
+        private async Task<Iteration> CreateCustomVisionTrainingIteration(Guid projectId)
         {
             int totalWaitingInSeconds = 0;
-            iteration = cognitiveHelper.CustomVisionTrainingClientInstance.TrainProject(projectId);
+            var iteration = cognitiveHelper.CustomVisionTrainingClientInstance.TrainProject(projectId);
             totalWaitingInSeconds = 0;
             while (iteration.Status == "Training")
             {
@@ -383,6 +391,10 @@ namespace ObjectDetectionManager.Services
             var changeDate = DateTime.UtcNow;
             activeWorkspace.LastTrainingDate = changeDate;
             activeWorkspace.LastUpdatedDate = changeDate;
+
+            await ValidateAndSaveWorkspace();
+
+            return iteration;
         }
 
         public async Task<byte[]> DownloadModelAsync(OfflineModelType modelType)

@@ -46,13 +46,13 @@ namespace ObjectDetectionManager.TestClient
             //Create/get an object detection workspace for the provided ownerId
             ODMWorkspaceManager wm = ODMWorkspaceManager.Initialize(true, ownerId, storageName, storageKey, dbEndpoint, dbPrimaryKey, dbName, sourceSystem, cvKey, cvEndpoint, cvTrainingKey, cvTrainingEndpoint, cvPredectionKey, cvPredectionEndpoint);
 
-            Console.WriteLine("Creating or getting existent workspace for user: " + ownerId);
+            Console.WriteLine($"Creating or getting existent workspace for user: ({ownerId})");
 
             var workspace = await wm.GetWorkspaceAsync(ownerId, true);
 
-            Console.WriteLine($"*** Workspace created successfully with id: ({workspace.id})");
+            Console.WriteLine($"*** Workspace created/retrieved successfully with id: ({workspace.id})");
 
-            Console.WriteLine("Staring to generate workspace files and regions and save them to the workspace");
+            Console.WriteLine("Staring to generate workspace files and regions locally and save them to the workspace");
 
             var sampleData = GetSampleDate();
 
