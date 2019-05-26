@@ -302,32 +302,35 @@ namespace ObjectDetectionManager.Services
             return project;
         }
 
-        public async Task<bool> TrainPreparedWorkspace()
+        public async Task<bool> TrainPreparedWorkspace(bool deleteAfterTraining = true)
         {
             if (string.IsNullOrEmpty(activeWorkspace.CustomVisionProjectId))
                 throw new InvalidOperationException("You need to execute PrepareWorkspaceForTraining first");
+
+            //No need for training as no changes since the last training
+            if (activeWorkspace.LastTrainingDate.HasValue && activeWorkspace.LastUpdatedDate == activeWorkspace.LastTrainingDate)
+                return true;
+
             Guid projectId = Guid.Parse(activeWorkspace.CustomVisionProjectId);
-            var iteration = cognitiveHelper.CustomVisionTrainingClientInstance.TrainProject(projectId);
+            Iteration iteration;
+
+            CreateCustomVisionTrainingIteration(projectId, out iteration);
+
+            await ExportTrainedCustomVisionIteration(projectId, iteration);
+
+            //Delete the Custom Vision project if requested (default)
+            if (deleteAfterTraining)
+                await DeleteCustomVisionProject(projectId);
+
+            return true;
+        }
+
+        private async Task ExportTrainedCustomVisionIteration(Guid projectId, Iteration iteration)
+        {
             int totalWaitingInSeconds = 0;
-            while (iteration.Status == "Training")
-            {
-                if (totalWaitingInSeconds > GlobalSettings.MaxTrainingWaitingTimeInSeconds)
-                    throw new TimeoutException($"Training timeout as it took more than ({GlobalSettings.MaxTrainingWaitingTimeInSeconds}) seconds.");
-
-                Thread.Sleep(1000);
-                totalWaitingInSeconds++;
-                // Re-query the iteration to get its updated status
-                iteration = cognitiveHelper.CustomVisionTrainingClientInstance.GetIteration(projectId, iteration.Id);
-            }
-
-            var changeDate = DateTime.UtcNow;
-            activeWorkspace.LastTrainingDate = changeDate;
-            activeWorkspace.LastUpdatedDate = changeDate;
-
-            totalWaitingInSeconds = 0;
             foreach (var platform in iteration.ExportableTo)
             {
-                if(platform == ExportPlatform.CoreML.ToString() || platform == ExportPlatform.TensorFlow.ToString() || platform == ExportPlatform.ONNX.ToString())
+                if (platform == ExportPlatform.CoreML.ToString() || platform == ExportPlatform.TensorFlow.ToString() || platform == ExportPlatform.ONNX.ToString())
                 {
                     var currentExport = await cognitiveHelper.CustomVisionTrainingClientInstance.ExportIterationAsync(projectId, iteration.Id, platform);
                     bool waitForExport = true;
@@ -359,11 +362,27 @@ namespace ObjectDetectionManager.Services
                     await modelsBlobContainer.CreateFileAsync(modelName, modelFile);
                 }
             }
+        }
 
-            //Delete the Custom Vision project
-            await DeleteCustomVisionProject(projectId);
+        private void CreateCustomVisionTrainingIteration(Guid projectId, out Iteration iteration)
+        {
+            int totalWaitingInSeconds = 0;
+            iteration = cognitiveHelper.CustomVisionTrainingClientInstance.TrainProject(projectId);
+            totalWaitingInSeconds = 0;
+            while (iteration.Status == "Training")
+            {
+                if (totalWaitingInSeconds > GlobalSettings.MaxTrainingWaitingTimeInSeconds)
+                    throw new TimeoutException($"Training timeout as it took more than ({GlobalSettings.MaxTrainingWaitingTimeInSeconds}) seconds.");
 
-            return true;
+                Thread.Sleep(1000);
+                totalWaitingInSeconds++;
+                // Re-query the iteration to get its updated status
+                iteration = cognitiveHelper.CustomVisionTrainingClientInstance.GetIteration(projectId, iteration.Id);
+            }
+
+            var changeDate = DateTime.UtcNow;
+            activeWorkspace.LastTrainingDate = changeDate;
+            activeWorkspace.LastUpdatedDate = changeDate;
         }
 
         public async Task<byte[]> DownloadModelAsync(OfflineModelType modelType)
@@ -388,6 +407,7 @@ namespace ObjectDetectionManager.Services
 
         public async Task DeleteWorkpaceAsync(bool isPhysicalDelete)
         {
+            throw new NotImplementedException("Pending Implementation");
         }
 
         public async Task DeleteTrainingFile(ODMWorkspace workspace, TrainingFile file)
