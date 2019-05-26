@@ -1,4 +1,4 @@
-# Vision Object Detector Platform
+# Custom Object Detection Platform
 
 I worked in a project where we needed to create personal object detection platform that supports exporting custom trained models to run in an offline mode on mobile devices (iOS (CoreML), Android (TensorFlow) and Windows (ONNX)).
 
