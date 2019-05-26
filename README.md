@@ -29,6 +29,7 @@ Currently I'm working to:
 2.  Create asynchronous scenario using Durable Azure Functions and storage queues
 3.  Provide better error handling especially when it relates to failures in submission to Custom Vision service
 4.  Create a ClientSDK to the Azure Function to .NET apps can access the HTTP functions without writing HTTP calls
+5.  Create a sample Xamarin Forms mobile client
 
 ## About the project
 
