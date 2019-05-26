@@ -8,21 +8,6 @@ namespace ObjectDetectionManager.TestClient
 {
     class Program
     {
-        private static string cvPredectionEndpoint = "https://westeurope.api.cognitive.microsoft.com/customvision/v3.0/Prediction/";
-        private static string cvPredectionKey = "da51de4ffb0f43aebcc90defd7c8eefb";
-        private static string cvTrainingKey = "323eb8f1bd56442a99140d397ca38830";
-        private static string cvTrainingEndpoint = "https://westeurope.api.cognitive.microsoft.com";
-        private static string cvEndpoint = "https://westeurope.api.cognitive.microsoft.com/";
-        private static string cvKey = "b7a6702052a545de84328589246437ab";
-        private static string sourceSystem = "TestClient";
-        private static string dbName = "seeingaivisiontrainer";
-        private static string dbPrimaryKey = "GJL8abEUQ23W4okLmlw0W3E6q7zbICgRMkAxEKU7RdjaXA3ciMMbqi8TqPp8X34MAzMf7d4DU9jbBhx7kIIxTQ==";
-        private static string dbEndpoint = "https://seeingaivisiontrainer.documents.azure.com:443/";
-        private static string storageKey = "9N8EnjH3r36ZyQVRomoWwA1oa9eoRTsFD6+KToV8pX1dCBjTeDdNh2qYLrCaXAuyiEQVFUpbz1r1eGX/iiiXww==";
-        private static string storageName = "seeingaihackcustomod";
-
-        private static string ownerId = "11111222-b89b-4bb3-9140-14e3d244e0aa";
-
         static void Main(string[] args)
         {
             Console.WriteLine("Welcome to Object Detection Manager Test");
@@ -44,11 +29,24 @@ namespace ObjectDetectionManager.TestClient
         static async void ExecuteDemo()
         {
             //Create/get an object detection workspace for the provided ownerId
-            ODMWorkspaceManager wm = ODMWorkspaceManager.Initialize(true, ownerId, storageName, storageKey, dbEndpoint, dbPrimaryKey, dbName, sourceSystem, cvKey, cvEndpoint, cvTrainingKey, cvTrainingEndpoint, cvPredectionKey, cvPredectionEndpoint);
+            ODMWorkspaceManager wm = ODMWorkspaceManager.Initialize(true, 
+                DemoSettings.ownerId, 
+                DemoSettings.storageName, 
+                DemoSettings.storageKey, 
+                DemoSettings.dbEndpoint,
+                DemoSettings.dbPrimaryKey,
+                DemoSettings.dbName,
+                DemoSettings.sourceSystem, 
+                DemoSettings.cvKey,
+                DemoSettings.cvEndpoint,
+                DemoSettings.cvTrainingKey,
+                DemoSettings.cvTrainingEndpoint,
+                DemoSettings.cvPredectionKey,
+                DemoSettings.cvPredectionEndpoint);
 
-            Console.WriteLine($"Creating or getting existent workspace for user: ({ownerId})");
+            Console.WriteLine($"Creating or getting existent workspace for user: ({DemoSettings.ownerId})");
 
-            var workspace = await wm.GetWorkspaceAsync(ownerId, true);
+            var workspace = await wm.GetWorkspaceAsync(DemoSettings.ownerId, true);
 
             Console.WriteLine($"*** Workspace created/retrieved successfully with id: ({workspace.id})");
 
