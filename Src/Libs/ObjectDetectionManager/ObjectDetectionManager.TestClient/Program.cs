@@ -70,17 +70,19 @@ namespace ObjectDetectionManager.TestClient
 
             Console.WriteLine("*** Training of model completed successfully. Model was also exported and saved to the storage");
 
+            Console.WriteLine("Getting the download links for the offline models: ONNX, CoreML and TensorFlow:");
+
             string downloadModelUrl = wm.GetModelDownloadUri(OfflineModelType.CoreML);
 
             Console.WriteLine($"CoreML Download Link: {downloadModelUrl}");
 
             downloadModelUrl = wm.GetModelDownloadUri(OfflineModelType.TensorFlow);
 
-            Console.WriteLine($"CoreML Download Link: {downloadModelUrl}");
+            Console.WriteLine($"TensorFlow Download Link: {downloadModelUrl}");
 
             downloadModelUrl = wm.GetModelDownloadUri(OfflineModelType.ONNX);
 
-            Console.WriteLine($"CoreML Download Link: {downloadModelUrl}");
+            Console.WriteLine($"ONNX Download Link: {downloadModelUrl}");
 
             Console.WriteLine("****************************************");
 
@@ -91,6 +93,8 @@ namespace ObjectDetectionManager.TestClient
         {
             List<TrainingFile> result = new List<TrainingFile>();
 
+            //Demo data is based on Azure Cognitive Services demo on GitHub: https://github.com/Azure-Samples/cognitive-services-dotnet-sdk-samples
+            //Notice that bounding boxes are using normalized dimensions (x, y, width and height are between 0 and 1);
             Dictionary<string, double[]> fileToRegionMapScissors = new Dictionary<string, double[]>()
             {
                 // FileName, Left, Top, Width, Height
