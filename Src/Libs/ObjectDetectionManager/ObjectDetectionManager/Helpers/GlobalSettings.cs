@@ -10,5 +10,8 @@ namespace ObjectDetectionManager.Helpers
         public const string DefaultModelName = "PersonalObjectDetection";
         public const string DefaultPartitionId = "Default";
         public const int MaxTrainingWaitingTimeInSeconds = 300;
+        public const string AIAlgorithmType = "ObjectDetection";
+        public const string AIAlgorithmSubtype = "General (compact)";
+        public const string CustomVisionProjectPrefix = "ODM";
     }
 }

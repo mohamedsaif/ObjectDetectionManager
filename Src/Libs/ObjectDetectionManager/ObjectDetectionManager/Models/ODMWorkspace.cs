@@ -4,7 +4,7 @@ using System.Text;
 
 namespace ObjectDetectionManager.Models
 {
-    public class ODWorkspace : BaseModel
+    public class ODMWorkspace : BaseModel
     {
         public string WorkspaceId { get; set; }
         public string ModelCotainerUri { get; set; }

@@ -27,8 +27,6 @@ namespace ObjectDetectionManager.AzureFunctions.Services
         {
             log.LogInformation("HTTP triggered (SaveODWorkspace) function");
             
-            var workspaceManager = await ODWorkspaceManagerHelper.SetWorkspaceManager();
-
             try
             {
                 var provider = new MultipartMemoryStreamProvider();
@@ -43,7 +41,9 @@ namespace ObjectDetectionManager.AzureFunctions.Services
                 var trainingFileData = provider.Contents[1];
                 var trainingFileBytes = await trainingFileData.ReadAsByteArrayAsync();
 
-                var workspace = await workspaceManager.GetWorkspaceAsync(trainingFileDTO.OwnerId);
+                var workspaceManager = await ODWorkspaceManagerHelper.SetWorkspaceManager(trainingFileDTO.OwnerId, false);
+
+                var workspace = await workspaceManager.GetWorkspaceAsync(trainingFileDTO.OwnerId, true);
 
                 var newFileName = workspaceManager.AddTrainingFile(trainingFileDTO.FileName, trainingFileBytes, Mapper.Map<List<ObjectRegion>>(trainingFileDTO.Regions));
 
@@ -53,6 +53,7 @@ namespace ObjectDetectionManager.AzureFunctions.Services
             }
             catch (Exception ex)
             {
+                log.LogError($"FAILED: {ex.Message}");
                 return new BadRequestObjectResult($"Addition of the file failed");
             }
         }

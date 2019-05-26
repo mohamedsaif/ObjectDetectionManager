@@ -20,10 +20,10 @@ namespace ObjectDetectionManager.Services
         private CognitiveServicesHelper cognitiveHelper;
         private AzureBlobStorageRepository filesBlobContainer;
         private AzureBlobStorageRepository modelsBlobContainer;
-        private CosmosDBRepository<ODWorkspace> workspaceRepo;
+        private CosmosDBRepository<ODMWorkspace> workspaceRepo;
         private string blobStorageName;
         private string blobStorageKey;
-        private ODWorkspace activeWorkspace;
+        private ODMWorkspace activeWorkspace;
 
         public static ODMWorkspaceManager Initialize(bool createIfNotFound, string ownerId, string storageName, string storageKey, string dbEndpoint, string dbPrimaryKey, string dbName, string sourceSystem, string cvKey, string cvEndpoint, string cvTrainingKey, string cvTrainingEndpoint, string cvPredectionKey, string cvPredectionEndpoint)
         {
@@ -51,15 +51,15 @@ namespace ObjectDetectionManager.Services
         private ODMWorkspaceManager(string storageName, string storageKey, string dbEndpoint, string dbPrimaryKey, string dbName, string sourceSystem, string cvKey, string cvEndpoint, string cvTrainingKey, string cvTrainingEndpoint, string cvPredectionKey, string cvPredectionEndpoint)
         {
             cognitiveHelper = new CognitiveServicesHelper(cvKey, cvEndpoint, cvTrainingKey, cvTrainingEndpoint, cvPredectionKey, cvPredectionEndpoint);
-            workspaceRepo = new CosmosDBRepository<ODWorkspace>(dbEndpoint, dbPrimaryKey, dbName, sourceSystem);
+            workspaceRepo = new CosmosDBRepository<ODMWorkspace>(dbEndpoint, dbPrimaryKey, dbName, sourceSystem);
             blobStorageName = storageName;
             blobStorageKey = storageKey;
 
         }
 
-        private async Task<ODWorkspace> GetOrCreateWorkspaceAsync(string ownerId)
+        private async Task<ODMWorkspace> GetOrCreateWorkspaceAsync(string ownerId)
         {
-            List<ODWorkspace> workspaceLockup = await workspaceRepo.GetItemsAsync(x => x.OwnerId == ownerId) as List<ODWorkspace>;
+            List<ODMWorkspace> workspaceLockup = await workspaceRepo.GetItemsAsync(x => x.OwnerId == ownerId) as List<ODMWorkspace>;
             
             //No workspace found for OwnerId
             if(workspaceLockup.Count == 0)
@@ -78,13 +78,13 @@ namespace ObjectDetectionManager.Services
             return activeWorkspace;
         }
 
-        public async Task<ODWorkspace> GetWorkspaceAsync(string ownerId, bool retrieveCached)
+        public async Task<ODMWorkspace> GetWorkspaceAsync(string ownerId, bool retrieveCached)
         {
             if (retrieveCached)
                 return activeWorkspace;
             else
             {
-                List<ODWorkspace> workspaceLockup = await workspaceRepo.GetItemsAsync(x => x.OwnerId == ownerId) as List<ODWorkspace>;
+                List<ODMWorkspace> workspaceLockup = await workspaceRepo.GetItemsAsync(x => x.OwnerId == ownerId) as List<ODMWorkspace>;
 
                 //No workspace found for OwnerId
                 if (workspaceLockup.Count == 0)
@@ -104,11 +104,11 @@ namespace ObjectDetectionManager.Services
             }
         }
 
-        private async Task<ODWorkspace> CreateWorkspaceAsync(string ownerId, ModelPolicy policy)
+        private async Task<ODMWorkspace> CreateWorkspaceAsync(string ownerId, ModelPolicy policy)
         {
             var newId = Guid.NewGuid().ToString();
 
-            var result = new ODWorkspace()
+            var result = new ODMWorkspace()
             {
                 id = newId,
                 WorkspaceId = newId,
@@ -239,31 +239,31 @@ namespace ObjectDetectionManager.Services
         {
             await ValidateAndSaveWorkspace();
 
-            var domains = await cognitiveHelper.CustomVisionTrainingClientInstance.GetDomainsAsync();
-            var objDetectionDomain = domains.FirstOrDefault(d => d.Type == "ObjectDetection" && d.Name == "General (compact)");
-
-            //TODO: Add project existence validation
-            var project = cognitiveHelper.CustomVisionTrainingClientInstance.CreateProject($"SeeingAI-{activeWorkspace.WorkspaceId}", null, objDetectionDomain.Id);
+            Project project = await CreateCustomVisionProject();
 
             activeWorkspace.CustomVisionProjectId = project.Id.ToString();
 
             //Tags Creation
-            var tags = activeWorkspace.Files.SelectMany(r => r.Regions)
-                                            .Select(t => t.TagName)
-                                            .Distinct();
-            var customVisionTags = new List<Tag>();
-            var imageFileEntries = new List<ImageFileCreateEntry>();
-            foreach (var tag in tags)
-            {
-                var newTag = await cognitiveHelper.CustomVisionTrainingClientInstance.CreateTagAsync(project.Id, tag);
-                customVisionTags.Add(newTag);
-            }
+            List<Tag> customVisionTags = await CreateCustomVisionProjectTags(project);
 
-            
+            //Create the training files
+            List<ImageFileCreateEntry> imageFileEntries = CreateCustomVisionTrainingFiles(customVisionTags);
+
+            //Finalize data upload with regions to customer vision project
+            await cognitiveHelper.CustomVisionTrainingClientInstance.CreateImagesFromFilesAsync(project.Id, new ImageFileCreateBatch(imageFileEntries));
+
+            activeWorkspace.LastUpdatedDate = DateTime.UtcNow;
+
+            await ValidateAndSaveWorkspace();
+        }
+
+        private List<ImageFileCreateEntry> CreateCustomVisionTrainingFiles(List<Tag> customVisionTags)
+        {
+            var imageFileEntries = new List<ImageFileCreateEntry>();
             foreach (var file in activeWorkspace.Files)
             {
                 List<Region> regions = new List<Region>();
-                foreach(var region in file.Regions)
+                foreach (var region in file.Regions)
                 {
                     //get the TagId
                     var customVisionTag = customVisionTags.Where(t => t.Name == region.TagName).FirstOrDefault();
@@ -274,12 +274,32 @@ namespace ObjectDetectionManager.Services
                 imageFileEntries.Add(new ImageFileCreateEntry(file.FileName, file.FileData, null, regions));
             }
 
-            //Finalize data upload with regions to customer vision project
-            await cognitiveHelper.CustomVisionTrainingClientInstance.CreateImagesFromFilesAsync(project.Id, new ImageFileCreateBatch(imageFileEntries));
+            return imageFileEntries;
+        }
 
-            activeWorkspace.LastUpdatedDate = DateTime.UtcNow;
+        private async Task<List<Tag>> CreateCustomVisionProjectTags(Project project)
+        {
+            var tags = activeWorkspace.Files.SelectMany(r => r.Regions)
+                                                        .Select(t => t.TagName)
+                                                        .Distinct();
+            var customVisionTags = new List<Tag>();
+            foreach (var tag in tags)
+            {
+                var newTag = await cognitiveHelper.CustomVisionTrainingClientInstance.CreateTagAsync(project.Id, tag);
+                customVisionTags.Add(newTag);
+            }
 
-            await ValidateAndSaveWorkspace();
+            return customVisionTags;
+        }
+
+        private async Task<Project> CreateCustomVisionProject()
+        {
+            var domains = await cognitiveHelper.CustomVisionTrainingClientInstance.GetDomainsAsync();
+            var objDetectionDomain = domains.FirstOrDefault(d => d.Type == GlobalSettings.AIAlgorithmType && d.Name == GlobalSettings.AIAlgorithmSubtype);
+
+            //TODO: Add project existence validation
+            var project = cognitiveHelper.CustomVisionTrainingClientInstance.CreateProject($"{GlobalSettings.CustomVisionProjectPrefix}-{activeWorkspace.WorkspaceId}", null, objDetectionDomain.Id);
+            return project;
         }
 
         public async Task<bool> TrainPreparedWorkspace()
@@ -370,7 +390,7 @@ namespace ObjectDetectionManager.Services
         {
         }
 
-        public async Task DeleteTrainingFile(ODWorkspace workspace, TrainingFile file)
+        public async Task DeleteTrainingFile(ODMWorkspace workspace, TrainingFile file)
         {
             throw new NotImplementedException("Pending Implementation");
         }

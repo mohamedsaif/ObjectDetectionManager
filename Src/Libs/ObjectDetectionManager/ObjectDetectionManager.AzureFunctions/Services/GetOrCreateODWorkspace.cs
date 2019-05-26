@@ -27,7 +27,7 @@ namespace ObjectDetectionManager.AzureFunctions.Services
             {
                 var workspaceManager = await ODWorkspaceManagerHelper.SetWorkspaceManager(owner.OwnerId, owner.CreateIfNotExists);
 
-                ODWorkspace workspace;
+                ODMWorkspace workspace;
 
                 if (owner != null)
                     workspace = await workspaceManager.GetWorkspaceAsync(owner.OwnerId, true);
