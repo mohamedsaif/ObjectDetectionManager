@@ -1,6 +1,16 @@
 # Custom Object Detection Platform
 
+AI infused mobile and web apps are now everywhere. 
+
+Personalized object detection can be one of the features that power many of the existing innovative apps. 
+
+Being able to turn the phone camera onto object locator especially without internet connection to find out where personal object (like toys, keys,...ect) is the primary objective of this platform.
+
 I worked in a project where we needed to create personal object detection platform that supports exporting custom trained models to run in an offline mode on mobile devices (iOS (CoreML), Android (TensorFlow) and Windows (ONNX)).
+
+The project provide several services that will allow the creation of a personal object detection workspace for each user of an app. Each project will have its own images and training data and the exported offline models (CoreML, TensorFlow and ONNX).
+
+Project leverages Azure Custom Vision, Azure Storage, Azure Cosmos Db, Azure Functions among other Azure services to provide all needed backend to build personalized workspace for each user.
 
 ## Implementation
 
